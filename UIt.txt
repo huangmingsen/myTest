@@ -1,0 +1,1082 @@
+local bit = require"bit"
+
+local GameLogic=GameDefine.LoadGameLuaFile("GameLogic")
+local ChoumaManager=GameDefine.LoadGameLuaFile("ChoumaManager")
+local HistoryLayer=GameDefine.LoadGameLuaFile("HistoryLayer")
+local SeatPlayerLayer=GameDefine.LoadGameLuaFile("SeatPlayerLayer")
+local GameTimeClock = GameDefine.LoadGameLuaFile("GameTimeClock")
+local SettingLayer = GameDefine.LoadGameLuaFile("SettingLayer")
+local HelpLayer = GameDefine.LoadGameLuaFile("HelpLayer")
+local GameProtocal =GameDefine.LoadGameLuaFile("GameProtocal")
+GameUIManager = 
+{
+	
+}
+
+local this=GameUIManager
+
+function GameUIManager.Awake()
+	this.initUiFinish = false
+	this.InitUI()
+	this.InitData()
+	ChoumaManager:InitManager()
+	this.initUiFinish = true
+    --GameTimeClock.Awake()
+    -- GameHelp.Awake()
+	-- GameSet.Awake()
+	
+    GameLogic.Awake()
+	
+	this.AddBtnEvents()
+   
+end
+
+function GameUIManager.Start()
+	this.ShowUserInfo()
+	this.StartNotking()
+end
+
+--初始化UI
+function GameUIManager.InitUI()	
+	this.Desk={}
+	for i = 1, 2 do
+		this.Desk[i]={}
+		this.Desk[i]._LightObj= this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/Texture_Light").gameObject
+		this.Desk[i]._LightTweenAni= this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/Texture_Light"):GetComponent("TweenAlpha")
+		this.Desk[i]._LblTotal=this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/LabelTotal"):GetComponent("UILabel")
+		this.Desk[i]._LblSelf=this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/LabelSelf"):GetComponent("UILabel")
+		this.Desk[i]._ObjSun=this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/Sprite_Sun").gameObject
+		this.Desk[i]._ObjStar=this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/Sprite_Star").gameObject
+		this.Desk[i]._BtnBet=this.transform:Find("UI_Game/Panel01/Game/Bet"..i.."/Button"):GetComponent("UIButton")
+	end
+	this.BankerTrans=this.transform:Find("UI_Game/Panel01/Game/Desk/Banker")
+
+    --setting
+    this.BtnSetting = this.transform:Find("UI_Game/Panel01/Game/Btn_Setting").gameObject
+	this.BtnRoad = this.transform:Find("UI_Game/Panel01/Game/Road/Btn_Road").gameObject
+    --rule
+    this.BtnRule = this.transform:Find("UI_Game/Panel01/Game/Btn_Rule").gameObject
+
+	--退出按钮
+    this.BtnExit = this.transform:Find("UI_Game/Panel01/Game/Btn_Back").gameObject
+    --this
+    this.Self = {
+        _Root = this.transform:Find("UI_Game/Panel01/Game/SelfInfo"),
+        _SpriteHead = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Sprite_Head"):GetComponent("UISprite"),
+        _LblName = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Name"):GetComponent("UILabel"),
+        _LblMoney = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Money"):GetComponent("UILabel"),
+        _LblWin = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Win"):GetComponent("UILabel"),
+        _TweenWin = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Win"):GetComponent("TweenPosition"),
+        _LblLose = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Lose"):GetComponent("UILabel"),
+        _TweenLose = this.transform:Find("UI_Game/Panel01/Game/SelfInfo/Label_Lose"):GetComponent("TweenPosition"),
+    }
+	
+
+	this.BetNumButton={}
+	for i = 1,GameProtocal.CM_NUM do
+		this.BetNumButton[i]={
+			-- _Tween = this.transform:Find("UI_Game/Panel01/Game/SelectGroup/"..i):GetComponent("TweenPosition"),
+			_Btn = this.transform:Find("UI_Game/Panel01/Game/SelectGroup/"..i.."/Sprite"):GetComponent("UIButton"),
+			_BetLabel = this.transform:Find("UI_Game/Panel01/Game/SelectGroup/"..i.."/Label"):GetComponent("UILabel"),
+			_ObjLight = this.transform:Find("UI_Game/Panel01/Game/SelectGroup/"..i.."/Sprite_Light").gameObject,
+		}
+	end
+
+    this.TfPlayPlayList = this.transform:Find("UI_Game/Panel01/Game/Sprite_PlayerList")
+
+	this.JettonRoot=this.transform:Find("UI_Game/Panel01/Game/JettonCache")
+	this.StarAni=this.JettonRoot:Find("star").gameObject
+	this.SunAni=this.JettonRoot:Find("sun").gameObject
+
+	this.CoinSprite=this.transform:Find("UI_Game/Panel01/Game/CoinSprite"):GetComponent("UISprite")
+	this.WaitTips=this.transform:Find("UI_Game/Panel01/Game/WaitingLine").gameObject
+
+    --Ani
+    this.SelectAni = {
+        _Obj = this.transform:Find("UI_Game/Panel02/Select").gameObject,
+        _Spin = this.transform:Find("UI_Game/Panel02/Select/Spine"):GetComponent("SkeletonAnimation"),
+    }
+    this.StartAni = {
+        _Obj = this.transform:Find("UI_Game/Panel02/Start").gameObject,
+        _Spin = this.transform:Find("UI_Game/Panel02/Start/Spine"):GetComponent("SkeletonAnimation"),
+    }
+    this.StopAni = {
+        _Obj = this.transform:Find("UI_Game/Panel02/Stop").gameObject,
+        _Spin = this.transform:Find("UI_Game/Panel02/Stop/Spine"):GetComponent("SkeletonAnimation"),
+    }
+    this.Win = {
+        _Obj = this.transform:Find("UI_Game/Panel02/Win").gameObject,
+        _Tween = this.transform:Find("UI_Game/Panel02/Win"):GetComponent("TweenScale"),
+        -- _TextureHead = this.transform:Find("UI_Game/Panel02/Win/Texture_Head"):GetComponent("UITexture"),
+        -- _LblName = this.transform:Find("UI_Game/Panel02/Win/Label_Name"):GetComponent("UILabel"),
+        _LblWin = this.transform:Find("UI_Game/Panel02/Win/Label_Win"):GetComponent("UILabel"),
+    }
+    this.Lose = {
+        _Obj = this.transform:Find("UI_Game/Panel02/Lose").gameObject,
+        _Tween = this.transform:Find("UI_Game/Panel02/Lose"):GetComponent("TweenScale"),
+        -- _TextureHead = this.transform:Find("UI_Game/Panel02/Lose/Texture_Head"):GetComponent("UITexture"),
+        -- _LblName = this.transform:Find("UI_Game/Panel02/Lose/Label_Name"):GetComponent("UILabel"),
+        _LblWin = this.transform:Find("UI_Game/Panel02/Lose/Label_Lose"):GetComponent("UILabel"),
+    }
+	--Timer
+	local timerObj = this.transform:Find("UI_Game/Panel01/Game/Timer").gameObject
+	GameTimeClock.Awake(timerObj)
+    --local ObjRoad = this.transform:Find("UI_Game/Panel03/Road").gameObject
+    this.HistoryLayer = HistoryLayer:create(this.transform.gameObject)	
+	--设置页面
+    this.SettingLayer = SettingLayer:create(this.transform:Find("UI_Game/Panel03/Setting").gameObject)
+	this.HelpLayer = HelpLayer:create(this.transform:Find("UI_Game/Panel03/Rule").gameObject)
+	this.SeatPlayerLayer=SeatPlayerLayer:create(this.transform.gameObject)
+end
+
+function GameUIManager.InitData()
+	this.mPlayerNote={}  --玩家押注
+	for i = 1, 180 do
+		this.mPlayerNote[i] = {0,0}
+	end
+	this.mTotalBets={0,0}  --总下注
+	this.mMyBets={0,0}  --我的下注
+
+	this.mBetEffectOn={}
+	for i = 1, 2 do
+		this.mBetEffectOn[i]={}
+		this.mBetEffectOn[i][1]=false  --1表示幸运星
+		this.mBetEffectOn[i][2]=false  --2表示太阳
+	end
+
+	this.mLuckyUserStation=-1  --我的幸运星
+	this.mRichUserStation=-1 --大富豪
+	this.mCurrentStation=-1 
+	this.mOnLineUserList = {}
+	this.mNoteTime=0
+	this.mOpenPrizeTime=0
+	this.mChips={}		--筹码
+	this.mPlayerMoney=0  --玩家押注后的金币
+	this.mCurrentBetIndex=-1  --当前押注索引
+
+	this.mObjStarList={}
+end
+
+
+function GameUIManager.AddBtnEvents()
+	-- UIEventListener.Get(this.BtnHelp).onClick = this.OnBtnHelp
+	UIEventListener.Get(this.BtnSetting).onClick = this.OnBtnSetting
+	UIEventListener.Get(this.BtnRoad).onClick = this.OnBtnRoad	
+	UIEventListener.Get(this.BtnRule).onClick = this.OnBtnRule
+	UIEventListener.Get(this.BtnExit).onClick = this.OnBtnExit
+	
+	for i = 1, 2 do		
+        UIEventListener.Get(this.Desk[i]._BtnBet.gameObject).onClick = function()
+			this.OnBtnPlayerJetton(i,this.Desk[i]._BtnBet.gameObject)
+		end
+    end
+	
+
+	--单次下注筹码数量切换按钮
+    for i=1,#this.BetNumButton do
+		UIEventListener.Get(this.BetNumButton[i]._Btn.gameObject).onClick = function()
+			this.OnBetNumButtonClick(i,this.BetNumButton[i]._Btn.gameObject)
+		end
+    end
+end
+
+function GameUIManager.StartNotking()
+    UIRoom.StartListenData()--资源初始化完成，开始接收消息
+    GameAudioContro.PlayBG(GameAudioContro.BGM)
+	UpdateBeat:Add(this.Update)
+end
+
+function GameUIManager.Update()
+	if this.initUiFinish == false then
+        return
+    end
+    --筹码处理
+    ChoumaManager:Update()
+end
+
+function GameUIManager.ShowUserInfo()
+	this.Self._LblName.text=MyUserInfo.szNickName
+	local HeadName = GetHeadSpriteName(MyUserInfo.iImageNO)
+	this.Self._SpriteHead.spriteName = HeadName
+	this.UpdateSelfMoney()
+end
+
+--更新玩家金币
+function GameUIManager.UpdateSelfMoney()
+	local money = MyUserInfo.iMoney
+	for i = 1, 2 do
+		money = money -this.mMyBets[i]
+	end
+	this.mPlayerMoney=money
+	this.Self._LblMoney.text=MoneyProportionStr(money)
+end
+
+--更新桌子上的玩家
+function GameUIManager.UpdateDeskPlayerInfo()
+	local info=nil
+	if this.mLuckyUserStation >= 0 and this.mLuckyUserStation < 180 then
+		local luckyUser=GameLogic.finduserbyStation(this.mLuckyUserStation)		
+		if(luckyUser~=nil) then
+			local snopPlayMoney =luckyUser.iMoney
+			for k = 1, 2 do
+				snopPlayMoney = snopPlayMoney -  this.mPlayerNote[luckyUser.iDeskStation + 1][k]
+			end
+			info =this.GetTMPUserInfo(luckyUser,snopPlayMoney)
+		end
+	end	
+	
+	this.SeatPlayerLayer:ShowUser(info,1)
+	for i = 2, GameProtocal.DESK_PALYER_COUNT do
+		local userInfo=this.mOnLineUserList[i-1]
+		this.SeatPlayerLayer:ShowUser(userInfo,i)
+	end
+	--大富豪取第一个
+	if(#this.mOnLineUserList>0) then
+		this.mRichUserStation=this.mOnLineUserList[1]._deskStation
+	end
+end
+
+--更新在线玩家列表
+function GameUIManager.UpdateOnlineUsers()
+	local playerList = GameSUserBaseInfo.userinfolist
+	this.mOnLineUserList = {}
+	for i = 1, #playerList do
+		if playerList[i].iDeskStation < 180 then
+			if playerList[i].iDeskStation ~= this.mLuckyUserStation then
+				local snopPlayMoney = playerList[i].iMoney
+				for k = 1, 2 do
+					snopPlayMoney = snopPlayMoney -  this.mPlayerNote[playerList[i].iDeskStation + 1][k]
+				end				
+				local info =this.GetTMPUserInfo(playerList[i],snopPlayMoney)
+				table.insert(this.mOnLineUserList,info)
+			end
+		end
+	end
+	
+	table.sort(this.mOnLineUserList, function(a,b) return a._allMoney > b._allMoney end)	
+end
+
+function GameUIManager.GetTMPUserInfo(user,snopPlayMoney)
+	local info = {
+		_userID=user.uiUserID,
+		_deskStation=user.iDeskStation,
+		_imageNO=user.iImageNO,
+		_photoFrame=user.iPhotoFrame,
+		_nickName=user.szNickName,
+		_allMoney=user.iMoney,
+		_gameSign=user.szGameSign,
+		_vipLevel=user.iVipLevel,
+		_winCount=user.iWinCount,
+		_lostCount=user.iLostCount,
+		_drawCount=user.iDrawCount,
+		_snopPlayMoney=snopPlayMoney,
+	}
+	return info
+end
+
+function GameUIManager.InsertPlayer(userInfo)	
+	if(this.mCurrentStation==GameProtocal.GAME_STATE.GS_WAIT_NETXT) then  --休闲状态
+		this.UpdateOnlineUsers()
+		this.UpdateDeskPlayerInfo()
+	end
+end
+function GameUIManager.RemovePlayer(userInfo)
+	if(this.mCurrentStation==GameProtocal.GAME_STATE.GS_WAIT_NETXT) then  --休闲状态
+		this.UpdateOnlineUsers()
+		this.UpdateDeskPlayerInfo()
+	end
+end
+
+function GameUIManager.UpDateUserInfo(userInfo)
+	if(userInfo.uiUserID==MyUserInfo.uiUserID) then
+		if(this.mCurrentStation==GameProtocal.GAME_STATE.GS_WAIT_NETXT) then
+			this.UpdateSelfMoney()
+		end
+	end
+end
+
+--获取我的座位号
+function GameUIManager.GetMeChairID()
+	return MyUserInfo.iDeskStation
+end
+
+
+function GameUIManager.ClearAll() -- 重置游戏
+	-- mMyBets = {0,0,0}
+	if(this.coroutineParent ~= nil) then
+		coroutine.stop(this.coroutineParent)
+		this.coroutineParent = nil
+	end
+	
+	GameTimeClock.StopClock()
+	this.ReSetGameData()
+	--清除座位玩家信息
+	this.SeatPlayerLayer:CleanPlayerDeskInfo()  
+
+	this.Self._LblWin.gameObject:SetActive(false)
+	this.Self._LblLose.gameObject:SetActive(false)
+
+	this.SelectAni._Obj:SetActive(false)
+	this.StartAni._Obj:SetActive(false)
+	this.StopAni._Obj:SetActive(false)
+	this.Win._Obj:SetActive(false)
+	this.Lose._Obj:SetActive(false)
+
+ 	--清除路单数据
+ 	this.HistoryLayer:ClearData()
+end
+
+function GameUIManager.ReSetGameData()
+	for i = 1, 180 do
+		this.mPlayerNote[i] = {0,0}
+	end
+
+	this.mMyBets={0,0}	
+
+	this.mTotalBets={0,0}  --总下注
+
+	--清楚幸运星
+	for i = 1, #this.mObjStarList do
+		local item=this.mObjStarList[i]
+		destroy(item)
+	end
+	this.mObjStarList={}
+
+	for i = 1, 2 do
+		this.Desk[i]._LblTotal.text=0
+		this.Desk[i]._LblSelf.text=0
+
+		this.Desk[i]._ObjSun:SetActive(false)
+		this.Desk[i]._ObjStar:SetActive(false)
+		this.Desk[i]._LightObj:SetActive(false)
+	end
+
+	this.mBetEffectOn={}
+	for i = 1, 2 do
+		this.mBetEffectOn[i]={}
+		this.mBetEffectOn[i][1]=false  --1表示幸运星
+		this.mBetEffectOn[i][2]=false  --2表示太阳
+	end
+
+	this.CoinSprite.gameObject:SetActive(false)
+	this.WaitTips:SetActive(false)
+end
+
+--游戏状态处理
+function GameUIManager.GameStation(data)
+	print("@@@@@@@@@@@@@@@@@@@@@@@@ 游戏状态处理 GameStation = "..tostring(data.mainMsg.Length))	
+	this.ClearAll()
+	
+	local state = data.mainMsg[0]
+	this.mCurrentStation = state
+	local msg = nil
+	if state == GameProtocal.GAME_STATE.GS_WAIT_NETXT then print("闲置")
+		msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_Station_Base)	
+	elseif state == GameProtocal.GAME_STATE.GS_XIAZHU then print("下注")
+		print("msg =",DataParseLua.GetLuaTableLength(GameProtocal.CMD_GM_Station_Note))
+		msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_Station_Note)
+	elseif state == GameProtocal.GAME_STATE.GS_ACCOUNT then print("结算")
+		print("msg =",DataParseLua.GetLuaTableLength(GameProtocal.CMD_GM_Station_Account))
+		msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_Station_Account)
+	end
+	print("打印游戏状态")
+	pt(msg)
+
+	local time = math.floor(msg.iLeftTick/1000)
+	if msg.iLeftTick % 1000 > 500 then
+		time = time + 1
+	end
+	GameTimeClock.StartClock(nil,time,this.mCurrentStation)
+
+	this.mNoteTime=msg.iXiaZhuTime
+	this.mOpenPrizeTime=msg.iSendCardTime + msg.iAccountTick
+
+	for i = 1, msg.iChouMaNum do
+		this.mChips[i] = msg.iChouMa[i-1]
+	end
+
+	this.mLuckyUserStation=msg.cbLuckerDeskStation
+
+	--更新桌子上的玩家
+	this.UpdateOnlineUsers()
+	this.UpdateDeskPlayerInfo()	
+
+	this.InitChipOption(this.mChips)
+
+	this.SetCurrentGameStatus(this.mCurrentStation)
+	this.InitFirstChouma()
+
+	if state == GameProtocal.GAME_STATE.GS_WAIT_NETXT then
+		this.SwitchButtonEnabled(false)
+	elseif state == GameProtocal.GAME_STATE.GS_XIAZHU then
+		--重置筹码深度
+		ChoumaManager:InitChoumaDepth()
+		--显示区域下注金额
+		for i = 1, 2 do
+			local areaSelfJetton=msg.SelfNoteMoney[i-1]
+			local areaTotalJetton=msg.NoteMoney[i-1]			
+			local areaLuckerNoteMoney=msg.iLuckerNoteMoney[i-1]
+			local areaOtherJetton=areaTotalJetton-areaSelfJetton
+
+			this.mMyBets[i] = areaSelfJetton
+			this.mTotalBets[i] = areaTotalJetton
+			--更新下注金额
+			this.ShowAreaJettonLabel(i)
+
+			--显示幸运星标志
+			if(areaLuckerNoteMoney>0) then
+				this.Desk[i]._ObjSun:SetActive(true)
+			end			
+
+			local tablePlayerAreaJetton={}
+			--临时处理，第一局将所有座位玩家的押注都重置为0
+			for j = 1, GameProtocal.DESK_PALYER_COUNT do				
+				tablePlayerAreaJetton[j]=0
+			end
+
+			ChoumaManager:ShowAllAreaChoumaObj(i, areaSelfJetton, tablePlayerAreaJetton, areaOtherJetton)
+		end	
+		this.SwitchButtonEnabled(true)
+	elseif state == GameProtocal.GAME_STATE.GS_ACCOUNT then
+		this.SwitchButtonEnabled(false)
+		this.WaitTips:SetActive(true)
+	end
+
+	this.mGameCount = msg.cbCurGames
+
+	local recordDataList=this.ParseRecordData(msg.iCardTypeRecordItemCount,msg.tagCardTypeRecordItem)
+	-- 显示路单
+	this.HistoryLayer:ShowAllLudan(recordDataList,this.mGameCount)
+
+	this.UpdateSelfMoney()	
+end
+
+--解析路单历史记录
+function GameUIManager.ParseRecordData(recordCount,recordData)
+	local recordDataList={}
+	for i = 1, recordCount do
+		table.insert(recordDataList,recordData[i-1])
+	end
+	return recordDataList
+end
+
+function GameUIManager.GameStateUpdate(data)
+	if(this.mCurrentStation == -1) then
+		return
+	end
+	local state = data.mainMsg[0]
+	this.mCurrentStation = state
+	this.SetCurrentGameStatus(this.mCurrentStation)
+	if state == GameProtocal.GAME_STATE.GS_WAIT_NETXT then 
+		print("@@@@@ 闲置")
+		local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_State)
+		--设置时间
+		GameTimeClock.StartClock(nil,msg.cbTimes,this.mCurrentStation)
+		this.ReSetGameData()
+		--检测路单是否满
+		this.HistoryLayer:CheckFull()		
+		--更新桌子上的玩家
+		this.UpdateOnlineUsers()
+		this.UpdateDeskPlayerInfo()	
+
+	elseif state == GameProtocal.GAME_STATE.GS_XIAZHU then 
+		print("@@@@@@@@@@@@@@@  下注状态")
+		local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_State)
+		--设置时间
+		GameTimeClock.StartClock(nil,msg.cbTimes,this.mCurrentStation)
+
+		this.PlayGameStartAnim()
+
+		local delayFunc = function ()
+			--等待动画播放完成
+			WaitForSeconds(0.8)
+			 --如果钱不够50元，则不能设置默认的下注筹码选项
+			--if(not self._gameView.BetAreaMask._gameObject.activeSelf) then
+			--如果上一轮金币足够但是达到个人下注限制，已经默认没有筹码，需要选中一个最小的筹码
+			print("@   111111111111111111111   mCurrentBetIndex:",this.mCurrentBetIndex)
+			if this.mCurrentBetIndex <= 0 then
+				this.InitFirstChouma()
+			end
+			--end  
+			--5.启用游戏按钮
+			this.SwitchButtonEnabled(true)				  
+		end
+		StartCoroutine(delayFunc)
+	elseif state == GameProtocal.GAME_STATE.GS_ACCOUNT then 
+		print("结算")
+		local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_State_Account)
+		--设置时间
+		GameTimeClock.StartClock(nil,msg.cbTimes,this.mCurrentStation)
+		this.GameSettle(msg)
+	end
+end
+
+
+function GameUIManager.GameNoteReq(data)
+	if(this.mCurrentStation == -1) then
+		return
+	end
+	local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.CMD_GM_Note)  
+	if (msg.bErrorCode == 0) then
+		-- print("@@@@@  bChipIndex:",msg.bChipIndex)
+		-- pt(this.mChips)
+		local noteMoney=this.mChips[msg.bChipIndex+1]
+		local betIndex=msg.bNoteObject+1
+		this.mTotalBets[betIndex]=this.mTotalBets[betIndex] + noteMoney
+		this.mPlayerNote[msg.bDeskStation + 1][betIndex] = this.mPlayerNote[msg.bDeskStation + 1][betIndex] + noteMoney
+
+		--幸运星
+		if (msg.bDeskStation == this.mLuckyUserStation) then
+			this.BetEffect(betIndex,1)
+		elseif(msg.bDeskStation == this.mRichUserStation) then  --大富豪
+			this.BetEffect(betIndex,2)
+		end
+
+		local isSelf=false
+		local tableIndex= this.SeatPlayerLayer:GetTableUser(msg.bDeskStation)
+		if (MyUserInfo.iDeskStation == msg.bDeskStation) then
+			this.mMyBets[betIndex]=this.mMyBets[betIndex]+noteMoney
+			isSelf=true
+			this.UpdateSelfMoney()
+			
+			--判断下注筹码按钮是否可用
+			this.ReSelectUserMaxBets()
+		elseif(tableIndex) then
+			--桌上玩家下注抖动
+			this.SeatPlayerLayer:PlayBetAni(tableIndex)
+		end		
+		
+		this.ShowAreaJettonLabel(betIndex)		
+		GameAudioContro.Play(GameAudioContro.EFFECT_Bet)
+
+		--根据下注值，生成筹码
+		ChoumaManager:CreateJettonChouma(isSelf,tableIndex,betIndex,noteMoney)
+	else
+	    if (MyUserInfo.iDeskStation == msg.bDeskStation) then
+	        local infoTip = GameLogic.NoteErroCode(msg.bErrorCode)
+			LblMsgText.Show(infoTip)
+	    end
+	end
+end
+
+function GameUIManager.GameSettle(msg)
+	print("@@@@@@@@@@ 游戏结算")
+	pt(msg)
+    --2.禁用游戏按钮
+    this.SwitchButtonEnabled(false)
+    --3.播放停止下注动画
+    this.PlayStopJettonAnim()
+
+    local dealyRunFunc = function ()
+        WaitForSeconds(1.5)   --等待动画播放完成  
+        local aniName = msg.cbPrizeIndex == 0 and "zheng" or "fan"
+		this.SelectAni._Obj:SetActive(true)
+		this.SelectAni._Spin.AnimationState:SetAnimation(0, aniName, false)
+		GameAudioContro.Play(GameAudioContro.EFFECT_Toss)
+		WaitForSeconds(2.8)
+		this.SelectAni._Obj:SetActive(false)
+		this.CoinSprite.gameObject:SetActive(true)
+		local spriteName=msg.cbPrizeIndex == 1 and "UI_CoinHead" or "UI_CoinTail"
+		this.CoinSprite.spriteName=spriteName
+
+		--显示赢的区域亮
+		this.TweenAreaLight(msg.cbPrizeIndex+1,true)
+
+        --6.筹码移动
+        this.ChoumaMoveingHandler(msg)
+        --7.显示玩家得分动画
+        this.ShowPlayerWinScore(msg)
+        WaitForSeconds(2)
+		this.TweenAreaLight(msg.cbPrizeIndex+1,false)
+		this.CoinSprite.gameObject:SetActive(false)
+        --写入路单数据
+        this.HistoryLayer:AddData(msg.cbPrizeIndex,true)
+    end
+    StartCoroutine(dealyRunFunc)
+end
+
+function GameUIManager.ShowPlayerWinScore(msg)
+    --更新玩家金币
+	for i = 1, 180 do
+		this.mPlayerNote[i] = {0,0}
+	end
+	this.mMyBets={0,0}  --我的下注
+	this.UpdateSelfMoney()  --更新玩家的金币
+	local hasValue=false
+	
+	local myWinLose=msg.iWinMoney[MyUserInfo.iDeskStation]		
+	--1.播放玩家自己的输赢分动画
+	if(myWinLose~=0) then
+		hasValue=true
+		local dealyRunFunc = function ()
+			local scoreFormat = MoneyProportionStr(myWinLose)
+			if myWinLose > 0 then
+				scoreFormat = "+" .. scoreFormat
+				this.Self._LblWin.text = scoreFormat
+				this.Self._LblWin.gameObject:SetActive(true)
+				this.Self._TweenWin:ResetToBeginning()
+				this.Self._TweenWin:PlayForward()	
+				    
+			else
+				this.Self._LblLose.text = scoreFormat
+				this.Self._LblLose.gameObject:SetActive(true)
+				this.Self._TweenLose:ResetToBeginning()
+				this.Self._TweenLose:PlayForward()
+	
+			end
+			WaitForSeconds(1.5)
+			this.Self._LblWin.gameObject:SetActive(false)
+			this.Self._LblLose.gameObject:SetActive(false)
+
+			if myWinLose > 0 then
+				GameAudioContro.Play(GameAudioContro.EFFECT_Win)  
+				this.Win._Obj:SetActive(true)
+				this.Win._LblWin.text = "+" .. MoneyProportionStr(myWinLose)
+				this.Win._Tween:PlayForward()
+	
+			elseif myWinLose < 0 then
+				this.Lose._Obj:SetActive(true)
+				this.Lose._LblWin.text = MoneyProportionStr(myWinLose)
+				this.Lose._Tween:PlayForward()
+	
+			end
+			WaitForSeconds(2)
+			this.Lose._Obj:SetActive(false)
+			this.Win._Obj:SetActive(false)
+		end
+		StartCoroutine(dealyRunFunc)	
+	end
+
+    --2.播放占座玩家的输赢分数
+    for i = 1, GameProtocal.DESK_PALYER_COUNT do
+		local deskStation = this.SeatPlayerLayer:GetDeskUserChairId(i)
+		if(deskStation>=0 and deskStation~=MyUserInfo.iDeskStation) then
+			local winLostMoney = msg.iWinMoney[deskStation]
+			if(winLostMoney~=0) then
+				hasValue=true
+				this.SeatPlayerLayer:ShowWinLoseScore(i,winLostMoney)
+			end  
+		end		   
+    end
+
+    --得分音效
+    if hasValue then
+		GameAudioContro.Play(GameAudioContro.EFFECT_GetGold)  
+    end
+end
+
+--开奖筹码移动处理事件
+function GameUIManager.ChoumaMoveingHandler(msg)
+    --1.将输的区域的筹码回收到庄家位置
+    ChoumaManager:ResetMaxMoveTime()  --重置最长的筹码移动时间
+    --赢的区域
+    local winAreaArray={}
+	winAreaArray[msg.cbPrizeIndex+1]=true
+	--输的给庄家
+    ChoumaManager:MoveLoseChoumaToBanker(winAreaArray)
+    local maxMoveTime=ChoumaManager:GetMaxMoveTime() --获取最长的筹码移动时间
+    if(maxMoveTime>0) then
+        --筹码移动音效
+		GameAudioContro.Play(GameAudioContro.EFFECT_PassBet)
+        WaitForSeconds(maxMoveTime+0.5)
+    end   
+
+    --2.将赢的筹码移动到赢的区域
+    ChoumaManager:ResetMaxMoveTime()  --重置最长的筹码移动时间
+    this.CreateChoumaObjForScore(winAreaArray)  --生成赢的筹码，并将赢的筹码移动到赢的区域
+    local maxMoveTime=ChoumaManager:GetMaxMoveTime() --获取最长的筹码移动时间
+    if(maxMoveTime>0) then
+        --筹码移动音效
+        GameAudioContro.Play(GameAudioContro.EFFECT_PassBet)
+        WaitForSeconds(maxMoveTime+0.5)
+    end        
+
+    --3.将赢的区域的筹码返回给玩家，并将赢的筹码移到对应的玩家
+    ChoumaManager:ResetMaxMoveTime()  --重置最长的筹码移动时间
+    ChoumaManager:MoveBetChoumaToPlayer(winAreaArray)  --将赢的区域的筹码返回给玩家
+    ChoumaManager:MoveWinChoumaToPlayer() --移动赢的筹码给玩家
+    local maxMoveTime=ChoumaManager:GetMaxMoveTime() --获取最长的筹码移动时间
+    if(maxMoveTime>0) then
+        --筹码移动音效
+        GameAudioContro.Play(GameAudioContro.EFFECT_PassBet)
+        WaitForSeconds(maxMoveTime-0.2)
+    end  
+end
+
+--根据玩家的得分，生成筹码
+function GameUIManager.CreateChoumaObjForScore(winAreaArray)
+    print("根据玩家的得分，生成筹码")
+    for i = 1, 2 do
+		if(winAreaArray[i]) then
+			local meBetAreaScore = this.mMyBets[i]
+			local tableBetAreatScore = {}
+			local tabelBetAreaTotal=0
+			for j = 1, GameProtocal.DESK_PALYER_COUNT do
+				tableBetAreatScore[j]=0
+				local deskStation = this.SeatPlayerLayer:GetDeskUserChairId(j)
+				if(deskStation>=0 and deskStation~=MyUserInfo.iDeskStation) then
+					local betScore = this.mPlayerNote[deskStation+1][i]
+					tableBetAreatScore[j]=betScore
+					tabelBetAreaTotal=tabelBetAreaTotal+betScore
+				end
+			end
+
+			local totalBetScore = this.mTotalBets[i]
+			local otherBetScoe=totalBetScore-meBetAreaScore-tabelBetAreaTotal
+			ChoumaManager:CreateChoumaObjForWinScore(i,meBetAreaScore,tableBetAreatScore,otherBetScoe)
+		end
+        -- body
+    end
+end
+
+function GameUIManager.TweenAreaLight(index,isActive)
+	this.Desk[index]._LightObj:SetActive(isActive)
+	if(isActive) then
+		this.Desk[index]._LightTweenAni:PlayForward()
+	end	
+end
+
+--播放开局动画
+function GameUIManager.PlayGameStartAnim()
+	GameAudioContro.Play(GameAudioContro.EFFECT_StartBet)
+	this.StartAni._Obj:SetActive(true)
+	this.StartAni._Spin.AnimationState:SetAnimation(0, "animation", false)
+
+	local dealyRunFunc = function ()
+        WaitForSeconds(1.5)   --等待动画播放完成  
+		this.StartAni._Obj:SetActive(false)
+	end
+    StartCoroutine(dealyRunFunc)
+end
+
+--播放停止下注动画
+function GameUIManager.PlayStopJettonAnim()
+	GameAudioContro.Play(GameAudioContro.EFFECT_StopBet)
+	this.StopAni._Obj:SetActive(true)
+	this.StopAni._Spin.AnimationState:SetAnimation(0, "animation", false)
+
+	local dealyRunFunc = function ()
+        WaitForSeconds(1.5)   --等待动画播放完成  
+		this.StopAni._Obj:SetActive(false)
+	end
+    StartCoroutine(dealyRunFunc)
+end
+
+--幸运星
+function GameUIManager.BetEffect(area, type)
+    if this.mBetEffectOn[area][type] then
+        return
+    end
+    this.mBetEffectOn[area][type] = true
+	local objPrefab=nil
+	if(type==1) then --幸运星
+		objPrefab=this.StarAni
+	else	--大富翁
+		objPrefab=this.SunAni
+	end
+    local function func()
+        --local var = type == 1 and newObject(self.JettonCache[7]) or newObject(self.JettonCache[8]) 
+        local obj =newObject(objPrefab)
+		local vartf=obj.transform
+		table.insert(this.mObjStarList,obj)
+        vartf:SetParent(this.JettonRoot)
+        vartf.localScale = Vector3.one
+        local originObj = type == 1 and this.SeatPlayerLayer:GetDeskUserRoot(1) or this.SeatPlayerLayer:GetDeskUserRoot(2)
+		local targetObj = type == 1 and this.Desk[area]._ObjStar or this.Desk[area]._ObjSun
+		local originPos=originObj.transform.localPosition
+		local targetPos=targetObj.transform.localPosition
+
+        local offset = (originPos.x + targetPos.x)/2
+        local influencePos = Vector3.New(offset, originPos.y, 0)
+        local paths = BezierLineSecondOrder(originPos,targetPos,influencePos,90)
+        vartf.localPosition = originPos
+        obj:SetActive(true)
+        for index, value in ipairs(paths) do
+            WaitForSeconds(0.02)
+            vartf.localPosition = value
+        end
+
+        if type == 1 then   
+			this.Desk[area]._ObjStar:SetActive(true)
+        elseif type == 2 then
+			this.Desk[area]._ObjSun:SetActive(true)
+        end
+		--删除幸运星
+        for i = 1, #this.mObjStarList do
+			local item=this.mObjStarList[i]
+			if(item==obj) then
+				table.remove(this.mObjStarList,i)			
+				break
+			end
+		end
+		destroy(obj)
+    end
+    StartCoroutine(func)
+end
+
+
+--幸运星
+function GameUIManager.GameLuckPlayer(data)
+    local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.stLuckPlayer)
+    this.mLuckyUserStation = msg.cbDeskStation
+	
+	--更新桌子上的玩家
+	this.UpdateOnlineUsers()
+	this.UpdateDeskPlayerInfo()	
+end
+
+--显示区域的下注信息
+function GameUIManager.ShowAreaJettonLabel(areaIndex)
+    local mySelfJetton=this.mMyBets[areaIndex]
+    local totalJetton=this.mTotalBets[areaIndex]
+    if(mySelfJetton>0) then
+		this.Desk[areaIndex]._LblSelf.text=MoneyProportionStr(mySelfJetton)		
+        this.Desk[areaIndex]._LblSelf.gameObject:SetActive(true)
+    else
+		this.Desk[areaIndex]._LblSelf.text="0"
+    end
+
+    if(totalJetton>0) then
+		this.Desk[areaIndex]._LblTotal.text=MoneyProportionStr(totalJetton)
+        this.Desk[areaIndex]._LblTotal.gameObject:SetActive(true)
+    else
+		this.Desk[areaIndex]._LblSelf.text="0"
+    end
+end
+
+--
+function GameUIManager.SetCurrentGameStatus(gameStatus)
+	print("GameStatus",gameStatus)
+	local mybet = 0
+	for i=1, #this.mMyBets do
+		mybet = mybet + this.mMyBets[i]
+	end
+	local playerJettonTotal = mybet
+    --保存玩家本轮下注总数
+    if gameStatus == GameProtocal.GAME_STATE.GS_ACCOUNT then
+        this.mPlayerLastRoundTotalBet = playerJettonTotal
+    elseif gameStatus == GameProtocal.GAME_STATE.GS_WAIT_NETXT then
+        --this.LblJettonTime._stateSprite.spriteName="UI_Time_Free"
+    elseif gameStatus == GameProtocal.GAME_STATE.GS_XIAZHU then
+        --this.LblJettonTime._stateSprite.spriteName="UI_Time_Betting"
+        -- body
+    end
+
+    this.mCurrentGameStatus = gameStatus
+end
+
+--初始化玩家的第一个下注筹码选项
+function GameUIManager.InitFirstChouma()
+    --pt(self.m_ChipAmountConfig)
+    for i=1,#this.BetNumButton do
+        if this.CheckPlayerMoneyForBetNumBtn(i) then
+            this.SwitchBetNumToggle(i)
+            return
+        end
+    end
+end
+
+--根据当前玩家筹码选中，判断是否可以下注
+function GameUIManager.ReSelectUserMaxBets()
+    --判断是否启用筹码按钮
+    for i=#this.BetNumButton,1,-1 do
+        local isEnabled = this.CheckPlayerMoneyForBetNumBtn(i)
+        this.BetNumButton[i]._Btn.isEnabled = isEnabled
+
+        --重新选中筹码
+        if not isEnabled and this.mCurrentBetIndex == i then
+            if i == 1 then
+                this.SwitchBetNumToggle(0)
+            else
+                --不足当前档位筹码数，则选中下一个可下注的额度
+                this.SwitchBetNumToggle(i-1)
+            end
+        end
+    end
+end
+
+--筹码按钮选中状态 手动切换
+function GameUIManager.SwitchBetNumToggle(toggleIndex)
+    this.mCurrentBetIndex = toggleIndex
+	PrintLog("    mCurrentBetIndex:",this.mCurrentBetIndex)
+    --取消所有选中
+    for _,v in ipairs(this.BetNumButton) do
+        --v._toggle.value = false
+        v._ObjLight:SetActive(false)
+    end
+	
+    if toggleIndex ~= 0 then
+        this.BetNumButton[toggleIndex]._ObjLight:SetActive(true)
+    end
+end
+
+--启用/禁用 游戏按钮
+function GameUIManager.SwitchButtonEnabled(isEnable)
+    --pt(self.m_ChipAmountConfig)
+	--PrintLog("@@@@@@@@@@@@@@@@@@@@@@@@   SwitchButtonEnabled  isEnable:",isEnable,"  #this.mChips:",#this.mChips)
+	--区域下注按钮
+	for i = 1, 2 do
+		this.Desk[i]._BtnBet.isEnabled = isEnable
+	end	
+    
+    --筹码切换按钮
+    for i=1,#this.mChips do
+        if isEnable then
+            local checkIsTrue=this.CheckPlayerMoneyForBetNumBtn(i)
+            -- PrintLog("  i:",i,"  checkIsTrue:",checkIsTrue)
+            this.BetNumButton[i]._Btn.isEnabled = checkIsTrue
+
+            if this.mCurrentBetIndex == i then
+                this.BetNumButton[i]._ObjLight:SetActive(true)
+            end
+
+        else
+            --debugLog(i.." false")
+            this.BetNumButton[i]._Btn.isEnabled = false
+
+            --禁用的时候隐藏选中状态
+            --this.BetNumButton[i]._ObjLight:SetActive(false)
+        end
+    end
+end
+
+--判断玩家资产是否足够启用筹码按钮
+function GameUIManager.CheckPlayerMoneyForBetNumBtn(betNumBtnIndex)
+    local isEnable = false
+	-- PrintLog("@@@@@@@@@@@@@@@@@@@@@@@2    mPlayerMoney:",this.mPlayerMoney,"  mChips["..betNumBtnIndex.."]:",this.mChips[betNumBtnIndex])
+    if this.mPlayerMoney >= this.mChips[betNumBtnIndex] then
+        isEnable = true
+    end
+    return isEnable
+end
+
+
+--判断是否可以下注
+function GameUIManager.CheckIsCanBet()
+	if MyUserInfo.iMoney < this.mLowNoteLimit then
+		this.ShowRecharge()
+        return false
+	else
+		return true
+    end
+end
+
+
+function GameUIManager.LimitNote(data)--限制下注
+	local msg = DataParseLua.BytesToStruct(data.mainMsg, GameProtocal.SUB_GM_Limit)  
+    this.mLowNoteLimit = tonumber(msg.iLimitVlue)
+    if MyUserInfo.iMoney < this.mLowNoteLimit then
+    	this.ShowRecharge()
+    else
+    	this.HideRecharge()
+    end
+end
+
+function GameUIManager.OpenRecharge()
+	HallUIManager.OnBtnRecharge()
+end
+
+function GameUIManager.ShowRecharge()
+	--this.LbRecharge.text ="You need ".. FormatNumToYW(MoneyProportionStr(this.mLowNoteLimit)).." coins to play the game"
+	-- this.GoRecharge:SetActive(true)
+	print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@".."You need ".. FormatNumToYW(MoneyProportionStr(this.mLowNoteLimit)).." coins to play the game")
+end
+function GameUIManager.HideRecharge()
+	--this.GoRecharge:SetActive(false)
+end
+
+
+function GameUIManager.InitChipOption(bets)
+    local len = 6
+    if (#bets > 6) then
+        len = 6
+	else
+		len = #bets
+	end
+	for i = 1, len do
+        local btn = this.BetNumButton[i]
+		btn._BetLabel.text= FormatNoteNumToYW(MoneyProportionStr(bets[i]))
+	end
+
+	 --样板筹码
+	 for i,chipDemo in ipairs(ChoumaManager.ChoumaPrefabGroup) do
+        --超过指定数额格式化显示
+        local chipAmount = FormatNoteNumToYW(MoneyProportionStr(bets[i]))
+        chipDemo._amountLabel.text = chipAmount
+    end
+end
+
+--用户下注点击事件
+function GameUIManager.OnBtnPlayerJetton(noteIndex, btnObj)
+    if this.mCurrentGameStatus ~= GameProtocal.GAME_STATE.GS_XIAZHU or this.mCurrentBetIndex <= 0 then return end
+	if not this.CheckIsCanBet() then
+        return
+    end
+
+	GameProtocal.CMD_GM_Note[1].data = MyUserInfo.iDeskStation
+	GameProtocal.CMD_GM_Note[2].data = this.mCurrentBetIndex - 1
+	GameProtocal.CMD_GM_Note[3].data = (noteIndex - 1)
+	local sendbet = DataParseLua.StructToBytes(GameProtocal.CMD_GM_Note)
+	NetManager:SendData(sendbet, 2000180, GameProtocal.GM_SUB_NOTE)
+end
+
+
+--续压
+function GameUIManager.OnBtnContinue()
+	local mybet = 0
+	for i=1, #this.mMyBets do
+		mybet = mybet + this.mMyBets[i]
+	end
+	if mybet > 0 then
+		LblMsgText.Show("You have placed a bet. You cannot repeat")
+    else
+    	NetManager:SendData(2000180, GameProtocal.GM_SUB_CONTINUE)
+    end
+end
+
+--单次下注筹码数量切换按钮事件
+function GameUIManager.OnBetNumButtonClick(betNumButtonIndex,btnObj)
+	GameAudioContro.Play(GameAudioContro.EFFECT_ChipChangeClick)
+    local betNumIndex = betNumButtonIndex
+    this.SwitchBetNumToggle(betNumIndex)
+end
+--设置
+function GameUIManager.OnBtnSetting()
+    this.SettingLayer:SetActive(true)
+end
+
+--路单
+function GameUIManager.OnBtnRoad()
+	this.HistoryLayer:SetActive(true)
+end
+
+
+function GameUIManager.OnBtnRule()--帮助界面
+	this.HelpLayer:SetActive(true)
+end
+
+function GameUIManager.OnBtnExit()  --退出
+	local mybet = 0
+	for i=1, #this.mMyBets do
+		mybet = mybet + this.mMyBets[i]
+	end
+	-- print("@@@@@@@@@@@@@@@退出游戏 mybet:",mybet)
+	if mybet > 0 then
+		LblMsgText.Show("The game is in progress,you cannot exit the game")
+    else
+		UIRoom.QuitGame()
+	end
+end
+
+function GameUIManager.OnDestroy()
+	-- if(GameUIManager.coroutineParent ~= nil) then
+	-- 	coroutine.stop(GameUIManager.coroutineParent)
+	-- 	GameUIManager.coroutineParent = nil
+	-- end
+	UpdateBeat:Remove(GameUIManager.Update)
+	package.loaded["662.GameUIManager"] = nil
+	GameLogic.OnDestroy()
+	GameTimeClock.OnDestroy()
+end
+
+
